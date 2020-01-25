@@ -1,0 +1,250 @@
+Const
+MAXPLAYERS = 12;
+MAXTEAMS = MAXPLAYERS/2; // Only teams will be processed, one player teams will be excluded in the calculations
+WARETYPES = 28;
+
+var g_teams : Array[0..MAXTEAMS-1] of Array[0..MAXPLAYERS-1] of Integer; // Stores for every team which players are involved
+var g_teamSizes : Array[0..MAXTEAMS-1] of Integer; // Stores for every team how many members there are
+var g_playerTeams : Array[0..MAXPLAYERS-1] of Integer; // Stores for each player what team they are in
+var g_wareHouses : Array[0..MAXPLAYERS-1] of Integer; // For every player, store which warehouse is their shared warehouse
+var g_sharedWares : Array[0..MAXTEAMS-1] of Array[0..WARETYPES-1] of Integer; // Store the shared wares count for every team
+var g_makeShared : Array[0..MAXPLAYERS-1] of Boolean; // Store for every player if the next to be built warehouse should become shared
+var g_teamCount : Integer; // Stores how many team needs to be processed
+var g_curWare : Integer; // The progress indicator for ware syncing
+var g_itCount : Integer; // Defines how many wares need to be iterated over to sync per tick
+var g_curDam : Integer; // The progress indicator for shared warehouse permanent burn failsafe
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Commands
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+{$COMMAND make_shared:makeSharedCmd}
+procedure makeSharedCmd(aHandID: Integer);
+begin
+	if (g_wareHouses[aHandID] = -1) then
+	begin
+		if (g_makeShared[aHandID] = false) then
+		begin
+			g_makeShared[aHandID] := true;
+			A.ShowMsg(aHandID,'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
+		end
+		else
+			A.ShowMsg(aHandID,'You already ordered your next warehouse to become a shared one.');
+	end
+	else
+		A.ShowMsg(aHandID,'You can not place a second warehouse.');
+end;
+{$COMMAND cancel_shared:cancelSharedCmd}
+procedure cancelSharedCmd(aHandID: Integer);
+begin
+	if (g_makeShared[aHandID] = true) then
+	begin
+		g_makeShared[aHandID] := false;
+		A.ShowMsg(aHandID,'Your make warehouse shared order has been cancelled.');
+	end
+	else
+		A.ShowMsg(aHandID,'No make warehouse shared order has been placed currently.');
+end;
+
+{$COMMAND set_iterations:setIterationsCmd}
+procedure setIterationsCmd(aHandID: Integer; aIts: Integer);
+begin
+	if (aIts > WARETYPES) then g_itCount := WARETYPES
+	else if (aIts < 1) then g_itCount := 1
+	else g_itCount := aIts;
+end;
+{$COMMAND get_iterations:getIterationsCmd}
+procedure getIterationsCmd(aHandID: Integer);
+begin
+	A.ShowMsg(aHandID,IntToStr(g_itCount));
+end;
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Events
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+{$EVENT evtMissionStart:ShrMissionStart}
+procedure ShrMissionStart;
+var houses : Array of Integer;
+var i : Integer;
+var j : Integer;
+var teamCountIt : Integer;
+begin
+	// Initialize global variables
+		// Init the team member lists
+	for i := 0 to MAXTEAMS-1 do
+	begin
+		for j := 0 to MAXPLAYERS-1 do
+		begin
+			g_teams[i][j] := -1;
+		end;
+	end;
+		// Init per-player team indicators
+	for i := 0 to MAXTEAMS-1 do
+	begin
+		g_teamSizes[i] := 0;
+	end;
+		// Init per-player team indicators
+	for i := 0 to MAXPLAYERS-1 do
+	begin
+		g_playerTeams[i] := -1;
+	end;
+		// Init shared warehouses list
+	for i := 0 to MAXPLAYERS-1 do
+	begin
+		g_wareHouses[i] := -1;
+	end;
+		// Init shared wares
+	for i := 0 to MAXTEAMS-1 do
+	begin
+		for j := 0 to WARETYPES-1 do
+		begin
+			g_sharedWares[i][j] := 0;
+		end;
+	end;
+		// Init the list of which players want to build a shared warehouse
+	for i := 0 to MAXPLAYERS-1 do
+	begin
+		g_makeShared[i] := false;
+	end;
+		// Init the team count
+	g_teamCount := 0;
+		// Init ware iteration progress indicator
+	g_curWare := 0;
+		// Init ware iteration count per tick
+	g_itCount := 5;
+		// Init shared warehouse permanent burn failsafe iteration indicator
+	g_curDam := 0;
+	
+	// Go through the list of players and collect which players are in which team
+	for i := 0 to MAXPLAYERS-1 do
+	begin
+		if not (S.PlayerEnabled(i)) then continue; // Make sure that the player is active
+		if not (g_playerTeams[i] = -1) then continue; // Don't form new teams when the player is already in a team
+		
+		for j := i+1 to MAXPLAYERS-1 do
+		begin
+			if not (S.PlayerEnabled(j)) then continue; // Make sure that the player is active
+			
+			if (S.PlayerAllianceCheck(i,j)) then
+			begin
+				g_playerTeams[i] := g_teamCount;
+				g_playerTeams[j] := g_teamCount;
+				g_teamSizes[g_teamCount] := g_teamSizes[g_teamCount] + 1;
+				g_teams[g_teamCount][0] := i;
+				g_teams[g_teamCount][g_teamSizes[g_teamCount]] := j;
+				teamCountIt := 1;
+			end;
+		end;
+		
+		g_teamSizes[g_teamCount] := g_teamSizes[g_teamCount] + teamCountIt;
+		g_teamCount := g_teamCount + teamCountIt;
+		teamCountIt := 0;
+	end;
+end;
+
+{$EVENT evtTick:ShrTick}
+procedure ShrTick;
+var diff : Integer;
+var i : Integer;
+var j : Integer;
+var k : Integer;
+var wareHouse : Integer;
+begin
+	for i := 1 to g_itCount do
+	begin
+		// Sync wares
+		for j := 0 to g_teamCount-1 do
+		begin
+			diff := 0;
+			for k := 0 to g_teamSizes[j]-1 do
+			begin
+				wareHouse := g_wareHouses[g_teams[j][k]];
+				if not (wareHouse = -1) then
+					diff := diff + S.HouseResourceAmount(wareHouse, g_curWare) - g_sharedWares[j][g_curWare];
+			end;
+			g_sharedWares[j][g_curWare] := g_sharedWares[j][g_curWare] + diff;
+			
+			for k := 0 to g_teamSizes[j]-1 do
+			begin
+				wareHouse := g_wareHouses[g_teams[j][k]];
+				if not (wareHouse = -1) then
+				begin
+					diff := g_sharedWares[j][g_curWare] - S.HouseResourceAmount(wareHouse, g_curWare);
+					
+					if (diff > 0) then
+					begin
+						A.HouseAddWaresTo(wareHouse, g_curWare, diff);
+					end;
+					if (diff < 0) then
+					begin
+						A.HouseTakeWaresFrom(wareHouse, g_curWare, U.AbsI(diff));
+					end;
+				end;
+			end;
+		end;
+		
+		// Iterate the ware sync indicator
+		g_curWare := g_curWare+1;
+		if (g_curWare = WARETYPES) then
+			g_curWare := 0;
+	end;
+	
+	// Make sure that shared warehouses always burn to differentiate with regular warehouses
+	if not (g_wareHouses[g_curDam] = -1) then
+	begin
+		if (S.HouseDamage(g_wareHouses[g_curDam]) = 0) then A.HouseAddDamage(g_wareHouses[g_curDam],1);
+	end;
+	
+	// Iterate the ware shared warehouse permanent burn failsafe iteration indicator
+	g_curDam := g_curDam+1;
+	if (g_curDam = MAXPLAYERS) then
+		g_curDam := 0;
+end;
+
+{$EVENT evtHouseBuilt:ShrHouseBuilt}
+procedure ShrHouseBuilt(aHouse: Integer);
+var owner : Integer;
+var i : Integer;
+begin
+	if (S.HouseType(aHouse) = 11) then
+	begin
+		owner := S.HouseOwner(aHouse);
+		if (g_makeShared[owner] = true) then
+		begin
+			g_makeShared[owner] := false;
+			
+			if (g_wareHouses[owner] = -1) then
+			begin
+				g_wareHouses[owner] := aHouse;
+				A.ShowMsg(owner,'The latest warehouse you finished has been made shared.');
+				
+				// Fill with wares and block them automatically
+				for i := 0 to WARETYPES-1 do
+				begin
+					A.HouseAddWaresTo(aHouse, i, g_sharedWares[g_playerTeams[owner]][i]);
+					A.HouseWareBlock(aHouse, i, true);
+				end;
+				
+				// Add damage to differentiate the warehouse with other warehouses
+				A.HouseAddDamage(aHouse,1);
+			end
+			else
+				A.ShowMsg(owner,'You can not make a second shared warehouse.');
+		end;
+	end;
+end;
+
+{$EVENT evtHouseDestroyed:ShrHouseDestroyed}
+procedure ShrHouseDestroyed(aHouse: Integer);
+var owner : Integer;
+begin
+	if (S.HouseType(aHouse) = 11) then
+	begin
+		owner := S.HouseOwner(aHouse);
+		if (g_wareHouses[owner] = aHouse) then
+			g_wareHouses[owner] := -1;
+	end;
+end;
