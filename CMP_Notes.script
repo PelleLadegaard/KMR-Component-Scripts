@@ -1,0 +1,185 @@
+Const
+MAXPLAYERS = 12;
+NOTESMAX = 10;
+COUNTDOWNTIME = 300;
+
+var g_notes : Array[0..MAXPLAYERS-1] of Array[0..9] of AnsiString;
+var g_noteCount : Array[0..MAXPLAYERS-1] of Integer;
+var g_noteCountdown : Array[0..MAXPLAYERS-1] of Integer;
+var g_overlayText : Array[0..MAXPLAYERS-1] of AnsiString;
+
+procedure UpdateOverlayProcess(aPlayer : Integer);
+var i : Integer;
+begin
+	A.OverlayTextSet(aPlayer,g_overlayText[aPlayer]);
+	
+	for i := 0 to g_noteCount[aPlayer]-1 do
+	begin
+		A.OverlayTextAppend(aPlayer,g_notes[aPlayer][i]+'|');
+	end;
+end;
+procedure UpdateOverlay(aPlayer : Integer);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			UpdateOverlayProcess(i);
+		end;
+	end
+	else
+		UpdateOverlayProcess(aPlayer);
+end;
+
+procedure SetOverlayTextProcess(aPlayer : Integer; text : AnsiString);
+begin
+	g_overlayText[aPlayer] := text;
+end;
+procedure SetOverlayTextManual(aPlayer : Integer; text : AnsiString);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			SetOverlayTextProcess(i, text);
+		end;
+	end
+	else
+		SetOverlayTextProcess(aPlayer, text);
+end;
+procedure SetOverlayText(aPlayer : Integer; text : AnsiString);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			SetOverlayTextProcess(i, text);
+			UpdateOverlay(i);
+		end;
+	end
+	else
+	begin
+		SetOverlayTextProcess(aPlayer, text);
+		UpdateOverlay(aPlayer);
+	end;
+end;
+
+procedure RemoveNoteProcess(aPlayer : Integer);
+var i : Integer;
+begin
+	if (g_noteCount[aPlayer] > 0) then
+	begin
+		g_noteCount[aPlayer] := g_noteCount[aPlayer]-1;
+		
+		//Reset timer if the list isn't empty
+		if (g_noteCount[aPlayer] > 0) then
+		begin
+			g_noteCountdown[aPlayer] := countdowntime;
+		end
+		else // This else is not necessary if RemoveNote is not used by another script, because g_noteCountdown[aPlayer] will already be at 0 either way if RemoveNote is called from the tick event
+			g_noteCountdown[aPlayer] := 0;
+		
+		for i := 0 to g_noteCount[aPlayer]-1 do
+		begin
+			g_notes[aPlayer][i] := g_notes[aPlayer][i+1];
+		end;
+	end
+	else
+		A.ShowMsg(aPlayer,'Error: trying to delete note from empty list');
+end;
+procedure RemoveNoteManual(aPlayer : Integer);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			RemoveNoteProcess(i);
+		end;
+	end
+	else
+		RemoveNoteProcess(aPlayer);
+end;
+procedure RemoveNote(aPlayer : Integer);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			RemoveNoteProcess(i);
+			UpdateOverlay(i);
+		end;
+	end
+	else
+	begin
+		RemoveNoteProcess(aPlayer);
+		UpdateOverlay(aPlayer);
+	end;
+end;
+
+procedure AddNoteProcess(aPlayer : Integer; text : AnsiString);
+begin
+	// If maximum number of notes is already in use, delete first entry
+	if (g_noteCount[aPlayer] = NOTESMAX) then
+		RemoveNoteProcess(aPlayer);
+	
+	// If there was no current countdown, set the countdown
+	if (g_noteCountdown[aPlayer] = 0) then
+		g_noteCountdown[aPlayer] := countdowntime;
+	
+	g_notes[aPlayer][g_noteCount[aPlayer]] := text;
+	g_noteCount[aPlayer] := g_noteCount[aPlayer]+1;
+end;
+procedure AddNoteManual(aPlayer : Integer; text : Ansistring);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			AddNoteProcess(i, text);
+		end;
+	end
+	else
+		AddNoteProcess(aPlayer, text);
+end;
+procedure AddNote(aPlayer : Integer; text : AnsiString);
+var i : Integer;
+begin
+	if (aPlayer = -1) then
+	begin
+		for i := 0 to MAXPLAYERS-1 do
+		begin
+			AddNoteProcess(i, text);
+			UpdateOverlay(i);
+		end;
+	end
+	else
+	begin
+		AddNoteProcess(aPlayer, text);
+		UpdateOverlay(aPlayer);
+	end;
+end;
+
+{$EVENT evtTick:NoteTick}
+procedure NoteTick;
+var notes : AnsiString;
+var i : Integer;
+var j : Integer;
+begin
+	// Update the notes countdowns
+	for i := 0 to MAXPLAYERS-1 do
+	begin
+		if (g_noteCountdown[i] > 0) then
+		begin
+			g_noteCountdown[i] := g_noteCountdown[i]-1;
+			
+			if (g_noteCountdown[i] = 0) then
+				RemoveNote(i);
+		end;
+	end;
+end;

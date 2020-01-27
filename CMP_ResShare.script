@@ -1,5 +1,17 @@
+// Uncomment this line of code if you want to make use of the notes extension (this requires you to place the CMP_Notes component script in the map folder)
+// Notes are a method of organizing messages displayed in the text overlay, which replaces the use of A.ShowMsg in this script.
+//{$DEFINE USES_NOTES}
+
+// Only include the notes component script when it's being used
+{$IFDEF USES_NOTES}
+{$I CMP_Notes.script}
+{$ENDIF}
+
 Const
+// Only define the MAXPLAYERS constant when the notes component is not in use, this has to be done because the notes component already defines a constant with a similar name
+{$IFNDEF USES_NOTES}
 MAXPLAYERS = 12;
+{$ENDIF}
 MAXTEAMS = MAXPLAYERS/2; // Only teams will be processed, one player teams will be excluded in the calculations
 WARETYPES = 28;
 
@@ -25,13 +37,29 @@ begin
 		if (g_makeShared[aHandID] = false) then
 		begin
 			g_makeShared[aHandID] := true;
+			{$IFDEF USES_NOTES}
+			AddNote(aHandID,'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
+			{$ELSE}
 			A.ShowMsg(aHandID,'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
+			{$ENDIF}
 		end
 		else
+		begin
+			{$IFDEF USES_NOTES}
+			AddNote(aHandID,'You already ordered your next warehouse to become a shared one.');
+			{$ELSE}
 			A.ShowMsg(aHandID,'You already ordered your next warehouse to become a shared one.');
+			{$ENDIF}
+		end;
 	end
 	else
+	begin
+		{$IFDEF USES_NOTES}
+		AddNote(aHandID,'You can not place a second warehouse.');
+		{$ELSE}
 		A.ShowMsg(aHandID,'You can not place a second warehouse.');
+		{$ENDIF}
+	end;
 end;
 {$COMMAND cancel_shared:cancelSharedCmd}
 procedure cancelSharedCmd(aHandID: Integer);
@@ -39,10 +67,21 @@ begin
 	if (g_makeShared[aHandID] = true) then
 	begin
 		g_makeShared[aHandID] := false;
+		
+		{$IFDEF USES_NOTES}
+		AddNote(aHandID,'Your make warehouse shared order has been cancelled.');
+		{$ELSE}
 		A.ShowMsg(aHandID,'Your make warehouse shared order has been cancelled.');
+		{$ENDIF}
 	end
 	else
+	begin
+		{$IFDEF USES_NOTES}
+		AddNote(aHandID,'No make warehouse shared order has been placed currently.');
+		{$ELSE}
 		A.ShowMsg(aHandID,'No make warehouse shared order has been placed currently.');
+		{$ENDIF}
+	end;
 end;
 
 {$COMMAND set_iterations:setIterationsCmd}
@@ -55,7 +94,11 @@ end;
 {$COMMAND get_iterations:getIterationsCmd}
 procedure getIterationsCmd(aHandID: Integer);
 begin
+	{$IFDEF USES_NOTES}
+	AddNote(aHandID,IntToStr(g_itCount));
+	{$ELSE}
 	A.ShowMsg(aHandID,IntToStr(g_itCount));
+	{$ENDIF}
 end;
 
 
@@ -219,7 +262,12 @@ begin
 			if (g_wareHouses[owner] = -1) then
 			begin
 				g_wareHouses[owner] := aHouse;
+				
+				{$IFDEF USES_NOTES}
+				AddNote(owner,'The latest warehouse you finished has been made shared.');
+				{$ELSE}
 				A.ShowMsg(owner,'The latest warehouse you finished has been made shared.');
+				{$ENDIF}
 				
 				// Fill with wares and block them automatically
 				for i := 0 to WARETYPES-1 do
@@ -232,7 +280,11 @@ begin
 				A.HouseAddDamage(aHouse,1);
 			end
 			else
+				{$IFDEF USES_NOTES}
+				AddNote(owner,'You can not make a second shared warehouse.');
+				{$ELSE}
 				A.ShowMsg(owner,'You can not make a second shared warehouse.');
+				{$ENDIF}
 		end;
 	end;
 end;
