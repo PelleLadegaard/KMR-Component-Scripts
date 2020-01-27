@@ -10,4 +10,5 @@ The library currently consists out of these component scripts:
 
 File | Description
 --- | ---
-Cmp_ResShare | This component script adds a gameplay feature where players can create a warehouse that shares resources with other team members.
+[CMP_ResShare](https://github.com/PelleLadegaard/KMR-Component-Scripts/wiki/cmp_ResShare) | Adds a gameplay feature where players can create a warehouse that shares resources with other team members.
+Cmp_Notes | Adds the ability to easily create notifications/notes which are overlayed in the text overlay screen.
