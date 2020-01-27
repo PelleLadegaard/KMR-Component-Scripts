@@ -9,13 +9,17 @@ var g_noteCountdown : Array[0..MAXPLAYERS-1] of Integer;
 var g_overlayText : Array[0..MAXPLAYERS-1] of AnsiString;
 
 procedure UpdateOverlayProcess(aPlayer : Integer);
+var loopEnd : Integer;
+var index : Integer;
 var i : Integer;
 begin
 	A.OverlayTextSet(aPlayer,g_overlayText[aPlayer]);
 	
-	for i := 0 to g_noteCount[aPlayer]-1 do
+	loopEnd := g_noteCount[aPlayer]-1;
+	for i := 0 to loopEnd do
 	begin
-		A.OverlayTextAppend(aPlayer,g_notes[aPlayer][i]+'|');
+		index := loopEnd-i;
+		A.OverlayTextAppend(aPlayer,g_notes[aPlayer][index]+'|');
 	end;
 end;
 procedure UpdateOverlay(aPlayer : Integer);
