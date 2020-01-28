@@ -36,37 +36,37 @@ begin
 		UpdateOverlayProcess(aPlayer);
 end;
 
-procedure SetOverlayTextProcess(aPlayer : Integer; text : AnsiString);
+procedure SetOverlayTextProcess(aPlayer : Integer; aText : AnsiString);
 begin
-	g_overlayText[aPlayer] := text;
+	g_overlayText[aPlayer] := aText;
 end;
-procedure SetOverlayTextManual(aPlayer : Integer; text : AnsiString);
+procedure SetOverlayTextManual(aPlayer : Integer; aText : AnsiString);
 var i : Integer;
 begin
 	if (aPlayer = -1) then
 	begin
 		for i := 0 to MAXPLAYERS-1 do
 		begin
-			SetOverlayTextProcess(i, text);
+			SetOverlayTextProcess(i, aText);
 		end;
 	end
 	else
-		SetOverlayTextProcess(aPlayer, text);
+		SetOverlayTextProcess(aPlayer, aText);
 end;
-procedure SetOverlayText(aPlayer : Integer; text : AnsiString);
+procedure SetOverlayText(aPlayer : Integer; aText : AnsiString);
 var i : Integer;
 begin
 	if (aPlayer = -1) then
 	begin
 		for i := 0 to MAXPLAYERS-1 do
 		begin
-			SetOverlayTextProcess(i, text);
+			SetOverlayTextProcess(i, aText);
 			UpdateOverlay(i);
 		end;
 	end
 	else
 	begin
-		SetOverlayTextProcess(aPlayer, text);
+		SetOverlayTextProcess(aPlayer, aText);
 		UpdateOverlay(aPlayer);
 	end;
 end;
@@ -125,7 +125,7 @@ begin
 	end;
 end;
 
-procedure AddNoteProcess(aPlayer : Integer; text : AnsiString);
+procedure AddNoteProcess(aPlayer : Integer; aText : AnsiString);
 begin
 	// If maximum number of notes is already in use, delete first entry
 	if (g_noteCount[aPlayer] = NOTESMAX) then
@@ -135,36 +135,36 @@ begin
 	if (g_noteCountdown[aPlayer] = 0) then
 		g_noteCountdown[aPlayer] := countdowntime;
 	
-	g_notes[aPlayer][g_noteCount[aPlayer]] := text;
+	g_notes[aPlayer][g_noteCount[aPlayer]] := aText;
 	g_noteCount[aPlayer] := g_noteCount[aPlayer]+1;
 end;
-procedure AddNoteManual(aPlayer : Integer; text : Ansistring);
+procedure AddNoteManual(aPlayer : Integer; aText : Ansistring);
 var i : Integer;
 begin
 	if (aPlayer = -1) then
 	begin
 		for i := 0 to MAXPLAYERS-1 do
 		begin
-			AddNoteProcess(i, text);
+			AddNoteProcess(i, aText);
 		end;
 	end
 	else
-		AddNoteProcess(aPlayer, text);
+		AddNoteProcess(aPlayer, aText);
 end;
-procedure AddNote(aPlayer : Integer; text : AnsiString);
+procedure AddNote(aPlayer : Integer; aText : AnsiString);
 var i : Integer;
 begin
 	if (aPlayer = -1) then
 	begin
 		for i := 0 to MAXPLAYERS-1 do
 		begin
-			AddNoteProcess(i, text);
+			AddNoteProcess(i, aText);
 			UpdateOverlay(i);
 		end;
 	end
 	else
 	begin
-		AddNoteProcess(aPlayer, text);
+		AddNoteProcess(aPlayer, aText);
 		UpdateOverlay(aPlayer);
 	end;
 end;
