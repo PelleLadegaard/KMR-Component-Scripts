@@ -27,6 +27,22 @@ var g_itCount : Integer; // Defines how many wares need to be iterated over to s
 var g_curDam : Integer; // The progress indicator for shared warehouse permanent burn failsafe
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Functions
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+procedure notify(aPlayer: Integer; aText : AnsiString);
+begin
+	{$IFDEF USES_NOTES}
+	AddNote(aPlayer, aText);
+	{$ELSE}
+	A.ShowMsg(aPlayer, aText);
+	{$ENDIF}
+end;
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Commands
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 {$COMMAND make_shared:makeSharedCmd}
@@ -37,28 +53,16 @@ begin
 		if (g_makeShared[aHandID] = false) then
 		begin
 			g_makeShared[aHandID] := true;
-			{$IFDEF USES_NOTES}
-			AddNote(aHandID,'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
-			{$ELSE}
-			A.ShowMsg(aHandID,'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
-			{$ENDIF}
+			notify(aHandID, 'Your next warehouse will become a shared warehouse, cancel order with the function: cancel_shared');
 		end
 		else
 		begin
-			{$IFDEF USES_NOTES}
-			AddNote(aHandID,'You already ordered your next warehouse to become a shared one.');
-			{$ELSE}
-			A.ShowMsg(aHandID,'You already ordered your next warehouse to become a shared one.');
-			{$ENDIF}
+			notify(aHandID, 'You already ordered your next warehouse to become a shared one.');
 		end;
 	end
 	else
 	begin
-		{$IFDEF USES_NOTES}
-		AddNote(aHandID,'You can not place a second warehouse.');
-		{$ELSE}
-		A.ShowMsg(aHandID,'You can not place a second warehouse.');
-		{$ENDIF}
+		notify(aHandID, 'You can not place a second warehouse.');
 	end;
 end;
 {$COMMAND cancel_shared:cancelSharedCmd}
@@ -68,19 +72,11 @@ begin
 	begin
 		g_makeShared[aHandID] := false;
 		
-		{$IFDEF USES_NOTES}
-		AddNote(aHandID,'Your make warehouse shared order has been cancelled.');
-		{$ELSE}
-		A.ShowMsg(aHandID,'Your make warehouse shared order has been cancelled.');
-		{$ENDIF}
+		notify(aHandID, 'Your make warehouse shared order has been cancelled.');
 	end
 	else
 	begin
-		{$IFDEF USES_NOTES}
-		AddNote(aHandID,'No make warehouse shared order has been placed currently.');
-		{$ELSE}
-		A.ShowMsg(aHandID,'No make warehouse shared order has been placed currently.');
-		{$ENDIF}
+		notify(aHandID, 'No make warehouse shared order has been placed currently.');
 	end;
 end;
 
@@ -94,11 +90,7 @@ end;
 {$COMMAND get_iterations:getIterationsCmd}
 procedure getIterationsCmd(aHandID: Integer);
 begin
-	{$IFDEF USES_NOTES}
-	AddNote(aHandID,IntToStr(g_itCount));
-	{$ELSE}
-	A.ShowMsg(aHandID,IntToStr(g_itCount));
-	{$ENDIF}
+	notify(aHandID, IntToStr(g_itCount));
 end;
 
 
@@ -262,12 +254,7 @@ begin
 			if (g_wareHouses[owner] = -1) then
 			begin
 				g_wareHouses[owner] := aHouse;
-				
-				{$IFDEF USES_NOTES}
-				AddNote(owner,'The latest warehouse you finished has been made shared.');
-				{$ELSE}
-				A.ShowMsg(owner,'The latest warehouse you finished has been made shared.');
-				{$ENDIF}
+				notify(owner, 'The latest warehouse you finished has been made shared.');
 				
 				// Fill with wares and block them automatically
 				for i := 0 to WARETYPES-1 do
@@ -280,11 +267,7 @@ begin
 				A.HouseAddDamage(aHouse,1);
 			end
 			else
-				{$IFDEF USES_NOTES}
-				AddNote(owner,'You can not make a second shared warehouse.');
-				{$ELSE}
-				A.ShowMsg(owner,'You can not make a second shared warehouse.');
-				{$ENDIF}
+				notify(owner, 'You can not make a second shared warehouse.');
 		end;
 	end;
 end;
