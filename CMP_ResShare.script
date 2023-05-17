@@ -273,7 +273,7 @@ begin
 end;
 
 {$EVENT evtHouseDestroyed:ShrHouseDestroyed}
-procedure ShrHouseDestroyed(aHouse: Integer);
+procedure ShrHouseDestroyed(aHouse: Integer; aDestroyerIndex: Integer);
 var owner : Integer;
 begin
 	if (S.HouseType(aHouse) = 11) then
